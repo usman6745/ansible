@@ -1,0 +1,129 @@
+---
+# tasks file for greylog
+- name: install lynx
+  yum: pkg=lynx state=latest
+- name: check whether the package is installed or not
+  shell: sudo yum list installed | grep lynx >> lynx.log
+- name: installing  java-1.8.0 - open jdk
+  shell: sudo yum install java-1.8.0-openjdk-devel -y
+- name: install epel-release
+  command: sudo yum install epel-release -y
+- name: installing pwgen
+  command: yum install pwgen -y
+#- name: set the java_home env path
+#  shell: echo "export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.191.b12-1.el7_6.x86_64/" >> /home/ansible/.bash_profile
+- name: set the java_home env path
+  shell: echo "export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.191.b12-1.el7_6.x86_64/" >> /etc/profile
+  become: true
+  become_user: root
+#- name: set the $java_path
+#  shell: echo "export PATH=$PATH:$JAVA_HOME/bin" >> /home/ansible/.bash_profile
+- name: source the /etc/profile
+  shell: 
+    source /etc/profile
+  become: true
+  become_user: root
+- name: copy the mongodb repository into remote loc -> /etc/yum.repos.d/ path
+  copy: 
+    src: files/mongodb-org-3.6.repo 
+    dest: /etc/yum.repos.d/
+  become: true
+  become_user: root
+- name: install mongodb-org
+  command: yum install -y mongodb-org
+- name: list the successfull installed mongodb packages
+  shell: sudo yum list installed | grep mongodb >> mongodbinstall.log
+##- name: setting the mongod config at bootlevel to start
+##  command: chkconfig --add mongod
+##  become: true
+##  become_user: root
+- name: reloading the service
+  shell: systemctl daemon-reload
+  become: true
+  become_user: root
+- name: enabling mongod.service
+  shell: systemctl enable mongod.service
+  become: true
+  become_user: root
+- name: start the mongod.service
+  shell: systemctl start mongod.service
+  become: true
+  become_user: root
+- name: import the repositoryfile of elasticsearch
+  copy:
+    src: files/elasticsearch.repo
+    dest: /etc/yum.repos.d/elasticsearch.repo
+  become: true
+  become_user: root
+- name: installing elasticsearch
+  shell: yum install elasticsearch -y
+  become: true
+  become_user: root
+- name: installation log detail for elasticsearch
+  shell: yum list installed | grep elasticsearch >> /home/vagrant/elasticsearch.log
+- name: insert the new line in a elasticsearch.yml under /etc 
+  command: sed -i '17i clustername: graylog' /etc/elasticsearch/elasticsearch.yml
+  become: true
+ become_user: root
+- name: adding a line in a file
+  lineinfile: 
+     path: /etc/elasticsearch/elasticsearch.yml
+     insertafter: '^# Use a descriptive name for your cluster:'
+     line: 'cluster.name: graylog'
+  become: true
+  become_user: root
+- name: chkconfig - adding elastic search in boot leve
+  shell: chkconfig --add elasticsearch
+  become: true
+  become_user: root
+- name: elasticsearch daemon reload
+  shell: systemctl daemon-reload
+  become: true
+  become_user: root
+- name: enabling elasticsearch service
+  shell: systemctl enable elasticsearch.service
+  become: true
+  become_user: root
+- name: restart elasticsearch service
+  shell: systemctl restart elasticsearch.service
+  become: true
+  become_user: root
+- name: add rpm and install graylog
+  shell: rpm -Uvh https://packages.graylog2.org/repo/packages/graylog-2.5-repository_latest.rpm
+  become: true
+  become_user: root
+- name: install graylog-server
+  shell: yum install graylog-server -y
+###- name: enter the password for root
+#- name: create a garylog password
+#  shell: echo -n "Enter Password: " && head -1 </dev/stdin | tr -d '\n' | sha256sum | cut -d" " -f1 
+- name: onboot graylog start
+  shell: chkconfig --add graylog-server   
+  become: true
+  become_user: root
+- name: graylog daemon-reload
+  shell: systemctl daemon-reload
+  become: true
+  become_user: root
+- name: enabling graylog-server
+  shell: systemctl enable graylog-server.service
+  become: true
+  become_user: root
+- name: start the graylog server
+  shell: systemctl start graylog-server.service
+  become: true
+  become_user: root
+#- name: create a user account
+#  user: name={{ enteruser }} password={{ enterpasswd }}
+#  tags: user-account
+- name: creat a password for graylog
+  shell: pwgen -N 1 -s 96 >> /home/vagrant/graylogpass.txt
+- name: adding a line in a file
+  shell: sed --in-place '/password_secret/d' /etc/graylog/server/server.conf
+- name: inserting the password in config file
+  lineinfile: 
+     path: /etc/graylog/server/server.conf
+     line: 'password_secret = VWMY2aNrNJztI1R7QAP264abkbhtxvQ37TA8W54G1ZjpzAFCut2LUAdee9p3FeqQM4hx4eut4sgQZWEqbeEytUiNywD2pyC2'
+     become: true
+     become_user: root
+

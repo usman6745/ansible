@@ -1,0 +1,21 @@
+---
+- hosts: centos
+  remote_user: vagrant
+  become: yes
+  connection: ssh
+
+  roles:
+    - greylog
+  vars_prompt:
+    - name: "enteruser"
+      prompt:  "enter user name "
+      private: no
+      confirm: yes
+      salt_size: 7
+    - name: "enterpasswd"
+      prompt: "enter a password for a user"
+      private: no
+      confirm: yes
+      salt_size: 4
+     
+
